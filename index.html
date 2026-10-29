@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADMC Smart ID Attendance</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      margin: 0;
+      padding: 18px;
+      text-align: center;
+    }
+    .card {
+      max-width: 480px;
+      margin: auto;
+      background: white;
+      padding: 18px;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px #ccc;
+    }
+    h2 { color: #9b111e; }
+    button {
+      background: #9b111e;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 13px 18px;
+      font-size: 16px;
+      margin: 8px 4px;
+    }
+    #reader { width: 100%; margin-top: 15px; }
+    #result {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f1f1f1;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>ADMC SMART ID ATTENDANCE</h2>
+    <p>Scan a student's Smart ID QR code.</p>
+    <button onclick="startScanner()">Start Scanner</button>
+    <button onclick="stopScanner()">Stop Scanner</button>
+    <div id="reader"></div>
+    <div id="result">Ready to scan.</div>
+  </div>
+
+  <script>
+    let scanner = null;
+    let processing = false;
+
+    function showMessage(message) {
+      document.getElementById("result").textContent = message;
+    }
+
+    async function startScanner() {
+      if (scanner) return;
+
+      if (typeof Html5Qrcode === "undefined") {
+        showMessage("Scanner library did not load. Check your internet connection.");
+        return;
+      }
+
+      scanner = new Html5Qrcode("reader");
+      showMessage("Requesting camera permission...");
+
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          async function(decodedText) {
+            if (processing) return;
+            processing = true;
+            showMessage("QR code scanned successfully!\n\nScanned content:\n" + decodedText);
+            try {
+              await scanner.stop();
+            } catch (e) {}
+            scanner = null;
+            processing = false;
+          },
+          function() {}
+        );
+
+        showMessage("Camera ready. Point it at a student QR code.");
+      } catch (error) {
+        scanner = null;
+        showMessage("Camera could not start.\nAllow camera access in your browser and try again.\n\n" + error);
+      }
+    }
+
+    async function stopScanner() {
+      if (scanner) {
+        try {
+          if (scanner.isScanning) await scanner.stop();
+          scanner.clear();
+        } catch (e) {}
+        scanner = null;
+      }
+      processing = false;
+      showMessage("Scanner stopped.");
+    }
+  </script>
+</body>
+</html>
